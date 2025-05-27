@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, Mail, Lock, User, Eye, EyeOff, UserPlus } from "lucide-react";
+import { MessageCircle, Mail, Lock, User, Eye, EyeOff, UserPlus, Sun, Moon, Github, Linkedin, ExternalLink } from "lucide-react";
 
 interface SafeUser {
   id: number;
@@ -19,9 +20,16 @@ interface SafeUser {
   email: string;
 }
 
+interface AppSetting {
+  id: number;
+  key: string;
+  value: string;
+}
+
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -46,6 +54,16 @@ export default function AuthPage() {
   const { data: users = [] } = useQuery<SafeUser[]>({
     queryKey: ["/api/users"],
   });
+
+  // Fetch app settings for contact info
+  const { data: settings = [] } = useQuery<AppSetting[]>({
+    queryKey: ["/api/settings"],
+  });
+
+  const getSetting = (key: string) => {
+    const setting = settings.find(s => s.key === key);
+    return setting?.value || '';
+  };
 
   // Redirect if already logged in
   useEffect(() => {
@@ -109,16 +127,44 @@ export default function AuthPage() {
 
   if (isLogin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-purple-800 flex items-center justify-center p-4">
-        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
+      <div className="min-h-screen animated-background floating-elements flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Floating particles */}
+        <div className="particles">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="particle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 10}s`,
+                animationDuration: `${10 + Math.random() * 10}s`
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Theme Toggle */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          className="fixed top-4 right-4 z-50 glass-button"
+        >
+          {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+        </Button>
+
+        <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center z-10">
           {/* Login Form Section */}
-          <Card className="shadow-2xl animate-in fade-in-50 duration-500">
+          <Card className="glass-card animate-slide-in-left">
             <CardHeader className="text-center space-y-4">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500 rounded-full mb-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4 animate-scale-in">
                 <MessageCircle className="text-white text-2xl" size={32} />
               </div>
-              <CardTitle className="text-3xl font-bold text-gray-900">Welcome Back</CardTitle>
-              <p className="text-gray-600">Sign in to your DevOps Chat Platform</p>
+              <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                DeepDevApp
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">-- By - Deepak Sagar</p>
+              <p className="text-gray-600 dark:text-gray-300">Sign in to your DevOps Chat Platform</p>
             </CardHeader>
             
             <CardContent className="space-y-6">

@@ -138,6 +138,50 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get app settings
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  // Update app setting
+  app.put("/api/settings/:key", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const { key } = req.params;
+      const { value } = req.body;
+      
+      const setting = await storage.setAppSetting({ key, value });
+      res.json(setting);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update setting" });
+    }
+  });
+
+  // Update dynamic URL
+  app.put("/api/dynamic-urls/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertDynamicUrlSchema.parse(req.body);
+      
+      const url = await storage.updateDynamicUrl(id, validatedData);
+      res.json(url);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update URL" });
+    }
+  });
+
   // Background task queue simulation
   app.post("/api/tasks", async (req, res) => {
     if (!req.isAuthenticated()) {
