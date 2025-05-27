@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertChatMessageSchema } from "@shared/schema";
+import { insertChatMessageSchema, insertDynamicUrlSchema, insertAppSettingSchema } from "@shared/schema";
 
 export function registerRoutes(app: Express): Server {
   // Setup authentication routes

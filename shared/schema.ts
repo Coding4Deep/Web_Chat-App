@@ -23,6 +23,12 @@ export const dynamicUrls = pgTable("dynamic_urls", {
   icon: text("icon").notNull(),
 });
 
+export const appSettings = pgTable("app_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -40,9 +46,16 @@ export const insertDynamicUrlSchema = createInsertSchema(dynamicUrls).pick({
   icon: true,
 });
 
+export const insertAppSettingSchema = createInsertSchema(appSettings).pick({
+  key: true,
+  value: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertDynamicUrl = z.infer<typeof insertDynamicUrlSchema>;
 export type DynamicUrl = typeof dynamicUrls.$inferSelect;
+export type InsertAppSetting = z.infer<typeof insertAppSettingSchema>;
+export type AppSetting = typeof appSettings.$inferSelect;

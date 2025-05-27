@@ -1,4 +1,4 @@
-import { users, chatMessages, dynamicUrls, type User, type InsertUser, type ChatMessage, type InsertChatMessage, type DynamicUrl, type InsertDynamicUrl } from "@shared/schema";
+import { users, chatMessages, dynamicUrls, appSettings, type User, type InsertUser, type ChatMessage, type InsertChatMessage, type DynamicUrl, type InsertDynamicUrl, type AppSetting, type InsertAppSetting } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -18,6 +18,11 @@ export interface IStorage {
   
   getDynamicUrls(): Promise<DynamicUrl[]>;
   createDynamicUrl(url: InsertDynamicUrl): Promise<DynamicUrl>;
+  updateDynamicUrl(id: number, url: InsertDynamicUrl): Promise<DynamicUrl>;
+  
+  getAppSettings(): Promise<AppSetting[]>;
+  getAppSetting(key: string): Promise<AppSetting | undefined>;
+  setAppSetting(setting: InsertAppSetting): Promise<AppSetting>;
   
   sessionStore: any;
 }
@@ -26,37 +31,55 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private chatMessages: Map<number, ChatMessage>;
   private dynamicUrls: Map<number, DynamicUrl>;
+  private appSettings: Map<string, AppSetting>;
   private currentUserId: number;
   private currentChatId: number;
   private currentUrlId: number;
+  private currentSettingId: number;
   sessionStore: any;
 
   constructor() {
     this.users = new Map();
     this.chatMessages = new Map();
     this.dynamicUrls = new Map();
+    this.appSettings = new Map();
     this.currentUserId = 1;
     this.currentChatId = 1;
     this.currentUrlId = 1;
+    this.currentSettingId = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
 
-    // Initialize some dynamic URLs
+    // Initialize some dynamic URLs and settings
     this.initializeDynamicUrls();
+    this.initializeAppSettings();
   }
 
   private async initializeDynamicUrls() {
     const defaultUrls = [
-      { name: "Server Status", url: "https://status.example.com", icon: "fas fa-server" },
-      { name: "Analytics Dashboard", url: "https://analytics.example.com", icon: "fas fa-chart-line" },
-      { name: "Configuration", url: "https://config.example.com", icon: "fas fa-cogs" },
+      { name: "My Portfolio", url: "https://portfolio.example.com", icon: "fas fa-server" },
+      { name: "Task Manager App", url: "https://taskmanager.example.com", icon: "fas fa-chart-line" },
+      { name: "Dockerfile Optimizer", url: "https://dockerfile.example.com", icon: "fas fa-cogs" },
       { name: "DevOps Tools", url: "https://tools.example.com", icon: "fas fa-tools" },
     ];
 
     for (const url of defaultUrls) {
       await this.createDynamicUrl(url);
+    }
+  }
+
+  private async initializeAppSettings() {
+    const defaultSettings = [
+      { key: "learn_more_url", value: "https://learn.example.com" },
+      { key: "github_url", value: "https://github.com/username" },
+      { key: "email", value: "contact@example.com" },
+      { key: "linkedin_url", value: "https://linkedin.com/in/username" },
+    ];
+
+    for (const setting of defaultSettings) {
+      await this.setAppSetting(setting);
     }
   }
 
@@ -126,6 +149,28 @@ export class MemStorage implements IStorage {
     const url: DynamicUrl = { ...insertUrl, id };
     this.dynamicUrls.set(id, url);
     return url;
+  }
+
+  async updateDynamicUrl(id: number, insertUrl: InsertDynamicUrl): Promise<DynamicUrl> {
+    const url: DynamicUrl = { ...insertUrl, id };
+    this.dynamicUrls.set(id, url);
+    return url;
+  }
+
+  async getAppSettings(): Promise<AppSetting[]> {
+    return Array.from(this.appSettings.values());
+  }
+
+  async getAppSetting(key: string): Promise<AppSetting | undefined> {
+    return this.appSettings.get(key);
+  }
+
+  async setAppSetting(insertSetting: InsertAppSetting): Promise<AppSetting> {
+    const existing = this.appSettings.get(insertSetting.key);
+    const id = existing?.id || this.currentSettingId++;
+    const setting: AppSetting = { ...insertSetting, id };
+    this.appSettings.set(insertSetting.key, setting);
+    return setting;
   }
 }
 
