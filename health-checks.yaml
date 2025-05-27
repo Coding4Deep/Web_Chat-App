@@ -1,0 +1,220 @@
+
+# Health Check Configuration for Kubernetes Deployment
+# This file contains all health check endpoints for each service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-check-config
+  labels:
+    app: repl-express-app
+data:
+  health-checks.json: |
+    {
+      "services": {
+        "backend": {
+          "health": {
+            "path": "/health",
+            "port": 5000,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 30,
+            "periodSeconds": 10,
+            "timeoutSeconds": 5,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "readiness": {
+            "path": "/health/ready",
+            "port": 5000,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 15,
+            "periodSeconds": 5,
+            "timeoutSeconds": 3,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "liveness": {
+            "path": "/health/live",
+            "port": 5000,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 60,
+            "periodSeconds": 30,
+            "timeoutSeconds": 10,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          }
+        },
+        "frontend": {
+          "health": {
+            "path": "/health",
+            "port": 80,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 10,
+            "periodSeconds": 10,
+            "timeoutSeconds": 3,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "readiness": {
+            "path": "/health/ready",
+            "port": 80,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 5,
+            "periodSeconds": 5,
+            "timeoutSeconds": 3,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "liveness": {
+            "path": "/health/live",
+            "port": 80,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 30,
+            "periodSeconds": 30,
+            "timeoutSeconds": 5,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          }
+        },
+        "postgres": {
+          "readiness": {
+            "exec": {
+              "command": [
+                "sh", "-c", 
+                "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+              ]
+            },
+            "initialDelaySeconds": 15,
+            "periodSeconds": 5,
+            "timeoutSeconds": 3,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "liveness": {
+            "exec": {
+              "command": [
+                "sh", "-c",
+                "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"
+              ]
+            },
+            "initialDelaySeconds": 60,
+            "periodSeconds": 30,
+            "timeoutSeconds": 10,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          }
+        },
+        "redis": {
+          "readiness": {
+            "exec": {
+              "command": ["redis-cli", "ping"]
+            },
+            "initialDelaySeconds": 10,
+            "periodSeconds": 5,
+            "timeoutSeconds": 3,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "liveness": {
+            "exec": {
+              "command": ["redis-cli", "ping"]
+            },
+            "initialDelaySeconds": 30,
+            "periodSeconds": 30,
+            "timeoutSeconds": 5,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          }
+        },
+        "rabbitmq": {
+          "readiness": {
+            "exec": {
+              "command": [
+                "rabbitmq-diagnostics", "-q", "ping"
+              ]
+            },
+            "initialDelaySeconds": 20,
+            "periodSeconds": 10,
+            "timeoutSeconds": 5,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "liveness": {
+            "exec": {
+              "command": [
+                "rabbitmq-diagnostics", "-q", "status"
+              ]
+            },
+            "initialDelaySeconds": 60,
+            "periodSeconds": 30,
+            "timeoutSeconds": 10,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          }
+        },
+        "prometheus": {
+          "readiness": {
+            "path": "/-/ready",
+            "port": 9090,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 15,
+            "periodSeconds": 10,
+            "timeoutSeconds": 5,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "liveness": {
+            "path": "/-/healthy",
+            "port": 9090,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 30,
+            "periodSeconds": 30,
+            "timeoutSeconds": 10,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          }
+        },
+        "grafana": {
+          "readiness": {
+            "path": "/api/health",
+            "port": 3000,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 20,
+            "periodSeconds": 10,
+            "timeoutSeconds": 5,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          },
+          "liveness": {
+            "path": "/api/health",
+            "port": 3000,
+            "scheme": "HTTP",
+            "initialDelaySeconds": 60,
+            "periodSeconds": 30,
+            "timeoutSeconds": 10,
+            "failureThreshold": 3,
+            "successThreshold": 1
+          }
+        }
+      },
+      "endpoints": {
+        "backend_health": "http://backend:5000/health",
+        "backend_ready": "http://backend:5000/health/ready",
+        "backend_live": "http://backend:5000/health/live",
+        "frontend_health": "http://frontend/health",
+        "frontend_ready": "http://frontend/health/ready",
+        "frontend_live": "http://frontend/health/live",
+        "prometheus_ready": "http://prometheus:9090/-/ready",
+        "prometheus_healthy": "http://prometheus:9090/-/healthy",
+        "grafana_health": "http://grafana:3000/api/health"
+      },
+      "notes": {
+        "backend": "Backend service checks database, Redis, and RabbitMQ connectivity",
+        "frontend": "Frontend service uses Nginx static health endpoints",
+        "postgres": "Uses pg_isready command for database health checks",
+        "redis": "Uses redis-cli ping command for Redis health checks",
+        "rabbitmq": "Uses rabbitmq-diagnostics for RabbitMQ health checks",
+        "prometheus": "Built-in Prometheus health endpoints",
+        "grafana": "Built-in Grafana health API endpoint"
+      }
+    }

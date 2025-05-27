@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { redisClient } from "./redis";
-import { publishTask } from "./rabbitmq";
+import { publishTask, checkRabbitMQHealth } from "./rabbitmq";
 import { register, httpRequestsTotal, httpRequestDuration, activeConnections, chatMessagesTotal } from "./metrics";
 import { insertChatMessageSchema, insertDynamicUrlSchema, insertAppSettingSchema } from "@shared/schema";
 
@@ -30,6 +30,99 @@ export function registerRoutes(app: Express): Server {
       res.end(await register.metrics());
     } catch (error) {
       res.status(500).end(error);
+    }
+  });
+
+  // Health check endpoints for Kubernetes
+  app.get('/health', async (req, res) => {
+    try {
+      // Basic health check - application is running
+      res.status(200).json({
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        service: 'backend'
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'unhealthy',
+        error: error.message,
+        service: 'backend'
+      });
+    }
+  });
+
+  app.get('/health/ready', async (req, res) => {
+    try {
+      // Readiness check - all dependencies are ready
+      const checks = [];
+      
+      // Check Redis connection
+      try {
+        await redisClient.ping();
+        checks.push({ service: 'redis', status: 'healthy' });
+      } catch (error) {
+        checks.push({ service: 'redis', status: 'unhealthy', error: error.message });
+      }
+
+      // Check Database connection
+      try {
+        const dbCheck = await storage.healthCheck();
+        checks.push({ service: 'database', status: dbCheck ? 'healthy' : 'unhealthy' });
+      } catch (error) {
+        checks.push({ service: 'database', status: 'unhealthy', error: error.message });
+      }
+
+      // Check RabbitMQ connection
+      try {
+        const rabbitCheck = await checkRabbitMQHealth();
+        checks.push({ service: 'rabbitmq', status: rabbitCheck ? 'healthy' : 'unhealthy' });
+      } catch (error) {
+        checks.push({ service: 'rabbitmq', status: 'unhealthy', error: error.message });
+      }
+
+      const allHealthy = checks.every(check => check.status === 'healthy');
+      
+      res.status(allHealthy ? 200 : 503).json({
+        status: allHealthy ? 'ready' : 'not_ready',
+        timestamp: new Date().toISOString(),
+        checks
+      });
+    } catch (error) {
+      res.status(503).json({
+        status: 'not_ready',
+        error: error.message,
+        service: 'backend'
+      });
+    }
+  });
+
+  app.get('/health/live', async (req, res) => {
+    try {
+      // Liveness check - application is alive and not deadlocked
+      const memUsage = process.memoryUsage();
+      const cpuUsage = process.cpuUsage();
+      
+      res.status(200).json({
+        status: 'alive',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        memory: {
+          rss: Math.round(memUsage.rss / 1024 / 1024) + 'MB',
+          heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024) + 'MB',
+          heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024) + 'MB'
+        },
+        cpu: {
+          user: cpuUsage.user,
+          system: cpuUsage.system
+        }
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'dead',
+        error: error.message,
+        service: 'backend'
+      });
     }
   });
 

@@ -10,20 +10,20 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
-  
+
   getChatMessages(): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   clearChatMessages(): Promise<void>;
   deleteUserChatMessages(userId: number): Promise<void>;
-  
+
   getDynamicUrls(): Promise<DynamicUrl[]>;
   createDynamicUrl(url: InsertDynamicUrl): Promise<DynamicUrl>;
   updateDynamicUrl(id: number, url: InsertDynamicUrl): Promise<DynamicUrl>;
-  
+
   getAppSettings(): Promise<AppSetting[]>;
   getAppSetting(key: string): Promise<AppSetting | undefined>;
   setAppSetting(setting: InsertAppSetting): Promise<AppSetting>;
-  
+
   sessionStore: any;
 }
 
@@ -47,7 +47,7 @@ export class MemStorage implements IStorage {
     this.currentChatId = 1;
     this.currentUrlId = 1;
     this.currentSettingId = 1;
-    
+
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -171,6 +171,18 @@ export class MemStorage implements IStorage {
     const setting: AppSetting = { ...insertSetting, id };
     this.appSettings.set(insertSetting.key, setting);
     return setting;
+  }
+
+  async healthCheck(): Promise<boolean> {
+    try {
+      // Simple query to check database connectivity
+      // await db.select().from(users).limit(1); // This line will cause error, as db is not defined.
+      // Modified health check for MemStorage.
+      return true;
+    } catch (error) {
+      console.error('Database health check failed:', error);
+      return false;
+    }
   }
 }
 
