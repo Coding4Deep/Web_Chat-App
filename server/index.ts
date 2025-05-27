@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { connectRedis } from "./redis";
+import { connectRabbitMQ, consumeTasks } from "./rabbitmq";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +39,21 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize infrastructure
+  try {
+    await connectRedis();
+    await connectRabbitMQ();
+    
+    // Start consuming tasks
+    await consumeTasks('notification_queue', async (task) => {
+      console.log('Processing notification task:', task);
+      // Add your notification logic here
+    });
+    
+  } catch (error) {
+    console.error('Failed to initialize infrastructure:', error);
+  }
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

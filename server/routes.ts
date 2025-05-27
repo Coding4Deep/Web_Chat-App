@@ -3,9 +3,36 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { redisClient } from "./redis";
+import { publishTask } from "./rabbitmq";
+import { register, httpRequestsTotal, httpRequestDuration, activeConnections, chatMessagesTotal } from "./metrics";
 import { insertChatMessageSchema, insertDynamicUrlSchema, insertAppSettingSchema } from "@shared/schema";
 
 export function registerRoutes(app: Express): Server {
+  // Add metrics middleware
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const end = httpRequestDuration.startTimer({ method: req.method, route: req.route?.path || req.path });
+    
+    res.on('finish', () => {
+      const duration = (Date.now() - start) / 1000;
+      httpRequestsTotal.inc({ method: req.method, route: req.route?.path || req.path, status_code: res.statusCode });
+      end();
+    });
+    
+    next();
+  });
+
+  // Metrics endpoint for Prometheus
+  app.get('/metrics', async (req, res) => {
+    try {
+      res.set('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } catch (error) {
+      res.status(500).end(error);
+    }
+  });
+
   // Setup authentication routes
   setupAuth(app);
 
@@ -23,7 +50,19 @@ export function registerRoutes(app: Express): Server {
   // Get chat messages
   app.get("/api/chat", async (req, res) => {
     try {
+      // Try to get from Redis cache first
+      const cacheKey = 'chat_messages';
+      const cachedMessages = await redisClient.get(cacheKey);
+      
+      if (cachedMessages) {
+        return res.json(JSON.parse(cachedMessages));
+      }
+      
       const messages = await storage.getChatMessages();
+      
+      // Cache for 30 seconds
+      await redisClient.setEx(cacheKey, 30, JSON.stringify(messages));
+      
       res.json(messages);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch chat messages" });
@@ -43,6 +82,20 @@ export function registerRoutes(app: Express): Server {
       });
       
       const message = await storage.createChatMessage(validatedData);
+      
+      // Clear cache
+      await redisClient.del('chat_messages');
+      
+      // Increment metrics
+      chatMessagesTotal.inc();
+      
+      // Publish task to RabbitMQ for async processing
+      await publishTask('notification_queue', {
+        type: 'new_message',
+        userId: req.user!.id,
+        messageId: message.id,
+        timestamp: new Date().toISOString()
+      });
       
       // Broadcast to all WebSocket clients
       if ((global as any).wss) {
@@ -216,6 +269,7 @@ export function registerRoutes(app: Express): Server {
 
   wss.on('connection', (ws: WebSocket) => {
     console.log('WebSocket client connected');
+    activeConnections.inc();
 
     ws.on('message', async (message: Buffer) => {
       try {
@@ -231,6 +285,7 @@ export function registerRoutes(app: Express): Server {
 
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
+      activeConnections.dec();
     });
 
     // Send connection confirmation
