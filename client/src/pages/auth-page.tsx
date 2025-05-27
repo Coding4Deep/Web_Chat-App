@@ -236,7 +236,7 @@ export default function AuthPage() {
               </form>
 
               <div className="text-center">
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Don't have an account?{" "}
                   <Button
                     variant="link"
@@ -247,15 +247,60 @@ export default function AuthPage() {
                   </Button>
                 </p>
               </div>
+
+              {/* Learn More Button */}
+              <div className="text-center">
+                <Button
+                  variant="outline"
+                  className="glass-button"
+                  onClick={() => window.open(getSetting('learn_more_url'), '_blank')}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Learn More
+                </Button>
+              </div>
             </CardContent>
+
+            {/* Contact Footer */}
+            <div className="p-6 border-t border-border/50 bg-card/50">
+              <div className="flex justify-center space-x-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="glass-button"
+                  onClick={() => window.open(getSetting('github_url'), '_blank')}
+                >
+                  <Github className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="glass-button"
+                  onClick={() => window.open(`mailto:${getSetting('email')}`, '_blank')}
+                >
+                  <Mail className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="glass-button"
+                  onClick={() => window.open(getSetting('linkedin_url'), '_blank')}
+                >
+                  <Linkedin className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-center text-xs text-muted-foreground mt-2">
+                © {getSetting('email')}
+              </p>
+            </div>
           </Card>
 
           {/* Users List Section */}
-          <Card className="shadow-2xl animate-in fade-in-50 duration-700">
+          <Card className="glass-card animate-slide-in-right">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-2xl font-bold">Active Users</CardTitle>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <Badge variant="secondary" className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100">
                   <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
                   {users.filter((_, index) => getOnlineStatus(index)).length} Online
                 </Badge>
@@ -268,7 +313,8 @@ export default function AuthPage() {
                   {users.map((user, index) => (
                     <div 
                       key={user.id}
-                      className="flex items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className="flex items-center p-3 bg-card/50 rounded-lg hover:bg-card/70 transition-all duration-300 glass-button animate-fade-in"
+                      style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       <Avatar className="mr-3">
                         <AvatarFallback className={`${getAvatarColor(user.username)} text-white font-semibold`}>
@@ -276,11 +322,11 @@ export default function AuthPage() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-gray-900">{user.username}</p>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <p className="font-medium text-foreground">{user.username}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
                       <div className={`w-3 h-3 rounded-full ${
-                        getOnlineStatus(index) ? 'bg-green-400' : 'bg-gray-300'
+                        getOnlineStatus(index) ? 'bg-green-400 animate-pulse' : 'bg-gray-300'
                       }`} />
                     </div>
                   ))}
@@ -294,15 +340,40 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-purple-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+    <div className="min-h-screen animated-background floating-elements flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Floating particles */}
+      <div className="particles">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 10}s`,
+              animationDuration: `${10 + Math.random() * 10}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Theme Toggle */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={toggleTheme}
+        className="fixed top-4 right-4 z-50 glass-button"
+      >
+        {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      </Button>
+
+      <div className="w-full max-w-md z-10">
+        <Card className="glass-card animate-scale-in">
           <CardHeader className="text-center space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-500 rounded-full mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full mb-4 animate-scale-in">
               <UserPlus className="text-white text-2xl" size={32} />
             </div>
-            <CardTitle className="text-3xl font-bold">Create Account</CardTitle>
-            <p className="text-gray-600">Join the DevOps Chat Platform</p>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Create Account</CardTitle>
+            <p className="text-gray-600 dark:text-gray-300">Join the DevOps Chat Platform</p>
           </CardHeader>
 
           <CardContent className="space-y-6">

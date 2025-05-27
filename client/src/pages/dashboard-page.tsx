@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,12 @@ import {
   Settings,
   Wrench,
   Circle,
-  ExternalLink
+  ExternalLink,
+  Sun,
+  Moon,
+  User,
+  Briefcase,
+  FileText
 } from "lucide-react";
 import { FaDocker, FaGitAlt } from "react-icons/fa";
 
@@ -47,8 +53,15 @@ interface DynamicUrl {
   icon: string;
 }
 
+interface AppSetting {
+  id: number;
+  key: string;
+  value: string;
+}
+
 export default function DashboardPage() {
   const { user, logoutMutation } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [isConnected, setIsConnected] = useState(false);
@@ -65,6 +78,16 @@ export default function DashboardPage() {
   const { data: dynamicUrls = [] } = useQuery<DynamicUrl[]>({
     queryKey: ["/api/dynamic-urls"],
   });
+
+  // Fetch app settings
+  const { data: settings = [] } = useQuery<AppSetting[]>({
+    queryKey: ["/api/settings"],
+  });
+
+  const getSetting = (key: string) => {
+    const setting = settings.find(s => s.key === key);
+    return setting?.value || '';
+  };
 
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -201,7 +224,12 @@ export default function DashboardPage() {
   };
 
   const handleDynamicUrlClick = (url: DynamicUrl) => {
-    window.open(url.url, '_blank');
+    // For DevOps Tools button, redirect to Learn More URL
+    if (url.name === "DevOps Tools") {
+      window.open(getSetting('learn_more_url'), '_blank');
+    } else {
+      window.open(url.url, '_blank');
+    }
     
     // Queue background task for analytics
     apiRequest("POST", "/api/tasks", {
@@ -235,27 +263,52 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen animated-background floating-elements relative overflow-hidden">
+      {/* Floating particles */}
+      <div className="particles">
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={i}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 10}s`,
+              animationDuration: `${15 + Math.random() * 10}s`
+            }}
+          />
+        ))}
+      </div>
+
       {/* Navigation Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="glass-header relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3 animate-scale-in">
                     <MessageCircle className="text-white" size={24} />
                   </div>
-                  <h1 className="text-xl font-bold text-gray-900">DevOps Chat</h1>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    DeepDevApp
+                  </h1>
                 </div>
               </div>
             </div>
 
             {/* User Profile Section */}
             <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="glass-button"
+              >
+                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </Button>
               <div className="hidden md:block text-right">
-                <p className="text-sm font-medium text-gray-900">{user.username}</p>
-                <p className="text-xs text-gray-500">{user.email}</p>
+                <p className="text-sm font-medium text-foreground">{user.username}</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
               <Avatar>
                 <AvatarFallback className={`${getAvatarColor(user.username)} text-white font-semibold`}>
@@ -267,6 +320,7 @@ export default function DashboardPage() {
                 size="sm"
                 onClick={() => logoutMutation.mutate()}
                 disabled={logoutMutation.isPending}
+                className="glass-button"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
@@ -276,53 +330,59 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* Left Column: User Info & Dynamic Buttons */}
           <div className="lg:col-span-1 space-y-6">
             {/* User Profile Card */}
-            <Card>
+            <Card className="glass-card animate-slide-in-left">
               <CardHeader>
-                <CardTitle className="text-lg">Profile Information</CardTitle>
+                <CardTitle className="text-lg flex items-center">
+                  <User className="mr-2" size={18} />
+                  Profile Information
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Name</label>
-                  <p className="mt-1 text-sm text-gray-900">{user.username}</p>
+                  <label className="block text-sm font-medium text-muted-foreground">Name</label>
+                  <p className="mt-1 text-sm text-foreground font-medium">{user.username}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Email</label>
-                  <p className="mt-1 text-sm text-gray-900">{user.email}</p>
+                  <label className="block text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="mt-1 text-sm text-foreground font-medium">{user.email}</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Status</label>
+                  <label className="block text-sm font-medium text-muted-foreground">Status</label>
                   <div className="mt-1 flex items-center">
-                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2" />
-                    <span className="text-sm text-gray-900">Online</span>
+                    <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse" />
+                    <span className="text-sm text-foreground font-medium">Online</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Dynamic Action Buttons */}
-            <Card>
+            <Card className="glass-card animate-slide-in-left" style={{ animationDelay: "0.1s" }}>
               <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
+                <CardTitle className="text-lg flex items-center">
+                  <Briefcase className="mr-2" size={18} />
+                  Quick Actions
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {dynamicUrls.map((url, index) => {
-                  const buttonColors = [
-                    "bg-blue-50 hover:bg-blue-100 text-blue-700",
-                    "bg-purple-50 hover:bg-purple-100 text-purple-700",
-                    "bg-emerald-50 hover:bg-emerald-100 text-emerald-700",
-                    "bg-amber-50 hover:bg-amber-100 text-amber-700"
+                  const buttonGradients = [
+                    "from-blue-500/10 to-blue-600/10 hover:from-blue-500/20 hover:to-blue-600/20 text-blue-700 dark:text-blue-300",
+                    "from-purple-500/10 to-purple-600/10 hover:from-purple-500/20 hover:to-purple-600/20 text-purple-700 dark:text-purple-300",
+                    "from-emerald-500/10 to-emerald-600/10 hover:from-emerald-500/20 hover:to-emerald-600/20 text-emerald-700 dark:text-emerald-300",
+                    "from-amber-500/10 to-amber-600/10 hover:from-amber-500/20 hover:to-amber-600/20 text-amber-700 dark:text-amber-300"
                   ];
                   
                   const icons = [
-                    <Server key="server" className="mr-3" size={16} />,
+                    <User key="portfolio" className="mr-3" size={16} />,
                     <BarChart3 key="chart" className="mr-3" size={16} />,
-                    <Settings key="settings" className="mr-3" size={16} />,
+                    <FaDocker key="docker" className="mr-3" size={16} />,
                     <Wrench key="wrench" className="mr-3" size={16} />
                   ];
 
@@ -330,7 +390,8 @@ export default function DashboardPage() {
                     <Button
                       key={url.id}
                       variant="ghost"
-                      className={`w-full justify-start font-medium transition-colors ${buttonColors[index % buttonColors.length]}`}
+                      className={`w-full justify-start font-medium transition-all duration-300 glass-button bg-gradient-to-r ${buttonGradients[index % buttonGradients.length]} animate-fade-in`}
+                      style={{ animationDelay: `${0.2 + index * 0.1}s` }}
                       onClick={() => handleDynamicUrlClick(url)}
                     >
                       {icons[index % icons.length]}
@@ -339,6 +400,49 @@ export default function DashboardPage() {
                     </Button>
                   );
                 })}
+              </CardContent>
+            </Card>
+
+            {/* DevOps Blog Section */}
+            <Card className="glass-card animate-slide-in-left" style={{ animationDelay: "0.2s" }}>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <FileText className="mr-2" size={18} />
+                  DevOps Tools Guide
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <div className="flex items-start space-x-2">
+                    <FaDocker className="mt-1 text-blue-500" size={14} />
+                    <div>
+                      <p className="font-medium text-foreground">Docker</p>
+                      <p>Containerization platform for deploying applications</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <FaGitAlt className="mt-1 text-orange-500" size={14} />
+                    <div>
+                      <p className="font-medium text-foreground">Git</p>
+                      <p>Version control system for tracking code changes</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <Settings className="mt-1 text-purple-500" size={14} />
+                    <div>
+                      <p className="font-medium text-foreground">Kubernetes</p>
+                      <p>Container orchestration for managing deployments</p>
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  className="w-full glass-button"
+                  onClick={() => window.open(getSetting('learn_more_url'), '_blank')}
+                >
+                  <ExternalLink className="mr-2" size={14} />
+                  Learn More
+                </Button>
               </CardContent>
             </Card>
           </div>
