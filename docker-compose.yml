@@ -19,7 +19,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
 
   # Redis for caching
   redis:
@@ -35,7 +34,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-      start_period: 30s
+      
 
   # RabbitMQ for message queuing
   rabbitmq:
@@ -54,7 +53,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      
 
   # Backend Service
   backend:
@@ -70,12 +69,9 @@ services:
       SESSION_SECRET: dev-session-secret-key-for-production-use-strong-secret
       NODE_ENV: production
     depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
+      - postgres
+      - redis
+      - rabbitmq
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
@@ -92,15 +88,14 @@ services:
     ports:
       - "80:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      
 
   # Prometheus for metrics collection
   prometheus:
@@ -122,7 +117,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+   
 
   # Grafana for metrics visualization
   grafana:
@@ -141,7 +136,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+    
 
 volumes:
   postgres_data:
