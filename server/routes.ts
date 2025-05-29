@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
-import { storage } from "./storage";
+import { storage } from "./postgresStorage";
 import { redisClient } from "./redis";
 import { publishTask, checkRabbitMQHealth } from "./rabbitmq";
 import { register, httpRequestsTotal, httpRequestDuration, activeConnections, chatMessagesTotal } from "./metrics";
@@ -213,7 +213,8 @@ export function registerRoutes(app: Express): Server {
       
       res.status(201).json(message);
     } catch (error) {
-      res.status(400).json({ error: "Invalid message data" });
+      console.error("Chat message validation failed:", error);
+      res.status(400).json({ error: "Invalid message data", details: error });
     }
   });
 
