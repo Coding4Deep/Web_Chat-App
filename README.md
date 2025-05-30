@@ -354,6 +354,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Monitoring with [Prometheus](https://prometheus.io/) & [Grafana](https://grafana.com/)
 - Containerized with [Docker](https://www.docker.com/)
 
----
-
-For deployment on Replit, simply push your code and use the built-in deployment features. The application is configured to work seamlessly on Replit's infrastructure.
